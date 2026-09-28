@@ -68,6 +68,12 @@ test('filters records by month and shows all records in the total view', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Total view' }));
 
   expect(screen.getByText('2026-09-10')).toBeInTheDocument();
+  expect(screen.queryByText('2026-08-12')).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Revenus' }));
+
   expect(screen.getByText('2026-08-12')).toBeInTheDocument();
+  expect(screen.queryByText('2026-09-10')).not.toBeInTheDocument();
+  
   expect(screen.getByText('Current month')).toBeInTheDocument();
 });
