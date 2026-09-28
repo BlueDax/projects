@@ -20,8 +20,74 @@ const CHART_COLORS = [
   "#34495e",
 ];
 
+const RECURRING_STORAGE_KEY = "myFinanceRecurring";
+const FREQUENCY_LABELS = {
+  weekly: "Weekly",
+  monthly: "Monthly",
+  yearly: "Yearly",
+};
+
+function getLocalDateValue(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function getMonthValue(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getNextRecurringDate(template) {
+  const [year, month, day] = template.nextDate.split("-").map(Number);
+
+  if (template.frequency === "weekly") {
+    return new Date(Date.UTC(year, month - 1, day + 7))
+      .toISOString()
+      .slice(0, 10);
+  }
+
+  const nextYear = template.frequency === "yearly" ? year + 1 : year;
+  const nextMonth =
+    template.frequency === "yearly" ? month - 1 : month;
+  const monthDays = new Date(Date.UTC(nextYear, nextMonth + 1, 0)).getUTCDate();
+  const nextDay = Math.min(template.anchorDay, monthDays);
+
+  return new Date(Date.UTC(nextYear, nextMonth, nextDay))
+    .toISOString()
+    .slice(0, 10);
+}
+
+function createDueTransactions(templates, transactions, today) {
+  const updatedTransactions = [...transactions];
+  const updatedTemplates = templates.map((template) => ({ ...template }));
+  const transactionIds = new Set(transactions.map((transaction) => transaction.id));
+  let changed = false;
+
+  updatedTemplates.forEach((template) => {
+    while (template.nextDate <= today) {
+      const id = `${template.id}-${template.nextDate}`;
+      if (!transactionIds.has(id)) {
+        updatedTransactions.push({
+          id,
+          type: template.type,
+          amount: template.amount,
+          category: template.category,
+          date: template.nextDate,
+          description: template.description,
+        });
+        transactionIds.add(id);
+      }
+      template.nextDate = getNextRecurringDate(template);
+      changed = true;
+    }
+  });
+
+  return {
+    transactions: updatedTransactions,
+    templates: updatedTemplates,
+    changed,
+  };
 }
 
 function getSectorPath(startAngle, endAngle, radius) {
@@ -189,6 +255,30 @@ const styles = {
     flexWrap: "wrap",
     alignItems: "center",
   },
+  recurringSection: {
+    marginBottom: "2rem",
+    padding: "1.5rem",
+    background: "#fff",
+    borderRadius: "8px",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+  },
+  recurringList: {
+    display: "grid",
+    gap: "0.75rem",
+    padding: 0,
+    margin: "1rem 0 0",
+    listStyle: "none",
+  },
+  recurringItem: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "1rem",
+    flexWrap: "wrap",
+    padding: "0.75rem 1rem",
+    border: "1px solid #eaecf0",
+    borderRadius: "8px",
+  },
   input: {
     padding: "0.6rem",
     border: "1px solid #ddd",
@@ -217,6 +307,10 @@ function App() {
     const saved = localStorage.getItem("myFinanceData");
     return saved ? JSON.parse(saved) : [];
   });
+  const [recurringTemplates, setRecurringTemplates] = useState(() => {
+    const saved = localStorage.getItem(RECURRING_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const [selectedMonth, setSelectedMonth] = useState(() =>
     getMonthValue(new Date()),
@@ -224,8 +318,15 @@ function App() {
   const [type, setType] = useState("expenses"); // 'expenses' or 'income'
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("Alimentaire");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(getLocalDateValue());
   const [desc, setDesc] = useState("");
+  const [recurringAmount, setRecurringAmount] = useState("");
+  const [recurringCategory, setRecurringCategory] = useState("Alimentaire");
+  const [recurringStartDate, setRecurringStartDate] = useState(
+    getLocalDateValue(),
+  );
+  const [recurringFrequency, setRecurringFrequency] = useState("monthly");
+  const [recurringDescription, setRecurringDescription] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortConfig, setSortConfig] = useState({
     key: "date",
@@ -250,6 +351,25 @@ function App() {
     localStorage.setItem("myFinanceData", JSON.stringify(transactions));
   }, [transactions]);
 
+  useEffect(() => {
+    localStorage.setItem(
+      RECURRING_STORAGE_KEY,
+      JSON.stringify(recurringTemplates),
+    );
+  }, [recurringTemplates]);
+
+  useEffect(() => {
+    const result = createDueTransactions(
+      recurringTemplates,
+      transactions,
+      getLocalDateValue(),
+    );
+    if (result.changed) {
+      setTransactions(result.transactions);
+      setRecurringTemplates(result.templates);
+    }
+  }, [recurringTemplates, transactions]);
+
   const addTransaction = (e) => {
     e.preventDefault();
     const parsedAmount = Number(amount);
@@ -269,6 +389,40 @@ function App() {
     setTransactions([...transactions, newTx]);
     setAmount("");
     setDesc("");
+  };
+
+  const addRecurringTransaction = (e) => {
+    e.preventDefault();
+    const parsedAmount = Number(recurringAmount);
+    if (!recurringAmount || !recurringStartDate) {
+      return alert("Please fill amount and start date");
+    }
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      return alert("Amount must be a positive number");
+    }
+
+    const newTemplate = {
+      id: `recurring-${Date.now()}`,
+      type,
+      amount: parsedAmount,
+      category: recurringCategory,
+      description: recurringDescription,
+      frequency: recurringFrequency,
+      startDate: recurringStartDate,
+      nextDate: recurringStartDate,
+      anchorDay: Number(recurringStartDate.slice(8, 10)),
+    };
+    setRecurringTemplates((previous) => [...previous, newTemplate]);
+    setRecurringAmount("");
+    setRecurringDescription("");
+  };
+
+  const deleteRecurringTransaction = (id) => {
+    if (window.confirm("Stop this recurring transaction?")) {
+      setRecurringTemplates((previous) =>
+        previous.filter((template) => template.id !== id),
+      );
+    }
   };
 
   const handleDelete = (id) => {
@@ -465,6 +619,7 @@ function App() {
         <input
           type="number"
           placeholder="Amount"
+          aria-label="Transaction amount"
           min="0.01"
           step="0.01"
           value={amount}
@@ -508,6 +663,104 @@ function App() {
           Add
         </button>
       </form>
+
+      <section style={styles.recurringSection}>
+        <h2 style={{ marginTop: 0 }}>Recurring transactions</h2>
+        <p>
+          Scheduled transactions are added automatically, including missed
+          occurrences, when the tracker is opened.
+        </p>
+        <form onSubmit={addRecurringTransaction} style={styles.form}>
+          <input
+            type="number"
+            placeholder="Amount"
+            aria-label="Recurring amount"
+            min="0.01"
+            step="0.01"
+            value={recurringAmount}
+            onChange={(event) => {
+              if (
+                event.target.value === "" ||
+                Number(event.target.value) > 0
+              ) {
+                setRecurringAmount(event.target.value);
+              }
+            }}
+            style={styles.input}
+            required
+          />
+          <select
+            aria-label="Recurring category"
+            value={recurringCategory}
+            onChange={(event) => setRecurringCategory(event.target.value)}
+            style={styles.input}
+          >
+            {CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Recurring frequency"
+            value={recurringFrequency}
+            onChange={(event) => setRecurringFrequency(event.target.value)}
+            style={styles.input}
+          >
+            {Object.entries(FREQUENCY_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <input
+            type="date"
+            aria-label="Recurring start date"
+            value={recurringStartDate}
+            onChange={(event) => setRecurringStartDate(event.target.value)}
+            style={styles.input}
+            required
+          />
+          <input
+            type="text"
+            placeholder="Description (optional)"
+            aria-label="Recurring description"
+            value={recurringDescription}
+            onChange={(event) => setRecurringDescription(event.target.value)}
+            style={styles.input}
+          />
+          <button type="submit" className="button button--primary">
+            Add recurring
+          </button>
+        </form>
+        {recurringTemplates.length > 0 && (
+          <ul style={styles.recurringList}>
+            {recurringTemplates.map((template) => (
+              <li key={template.id} style={styles.recurringItem}>
+                <span>
+                  <strong>{template.category}</strong>
+                  {" · "}
+                  {template.type === "income" ? "Income" : "Expense"}
+                  {" · "}
+                  {template.amount.toFixed(2)} €
+                  {" · "}
+                  {FREQUENCY_LABELS[template.frequency]}
+                  {" · "}
+                  Next: {template.nextDate}
+                  {template.description ? ` · ${template.description}` : ""}
+                </span>
+                <button
+                  type="button"
+                  className="button button--danger"
+                  onClick={() => deleteRecurringTransaction(template.id)}
+                >
+                  Stop
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {/* Category Filter Section */}
       <div
