@@ -7,7 +7,7 @@ beforeEach(() => {
 
 test('does not allow a negative amount in the input', () => {
   render(<App />);
-  const amountInput = screen.getByPlaceholderText('Amount');
+  const amountInput = screen.getByLabelText('Transaction amount');
 
   expect(amountInput).toHaveAttribute('min', '0.01');
   expect(amountInput).toHaveAttribute('step', '0.01');
@@ -19,7 +19,7 @@ test('does not allow a negative amount in the input', () => {
 
 test('keeps non-negative amounts available for submission', () => {
   render(<App />);
-  const amountInput = screen.getByPlaceholderText('Amount');
+  const amountInput = screen.getByLabelText('Transaction amount');
 
   fireEvent.change(amountInput, { target: { value: '12.50' } });
 
@@ -76,4 +76,111 @@ test('filters records by month and shows all records in the total view', () => {
   expect(screen.queryByText('2026-09-10')).not.toBeInTheDocument();
   
   expect(screen.getByText('Current month')).toBeInTheDocument();
+});
+
+test('creates all due recurring transactions without creating duplicates', () => {
+  jest.useFakeTimers();
+  jest.setSystemTime(new Date('2026-09-28T12:00:00'));
+  localStorage.setItem(
+    'myFinanceRecurring',
+    JSON.stringify([
+      {
+        id: 'weekly-rent',
+        type: 'expenses',
+        amount: 20,
+        category: 'Logement',
+        description: 'Weekly',
+        frequency: 'weekly',
+        startDate: '2026-09-14',
+        nextDate: '2026-09-14',
+        anchorDay: 14,
+      },
+      {
+        id: 'monthly-salary',
+        type: 'income',
+        amount: 100,
+        category: 'Salaires',
+        description: 'Monthly',
+        frequency: 'monthly',
+        startDate: '2026-08-15',
+        nextDate: '2026-08-15',
+        anchorDay: 15,
+      },
+      {
+        id: 'yearly-repair',
+        type: 'expenses',
+        amount: 50,
+        category: 'Réparations',
+        description: 'Yearly',
+        frequency: 'yearly',
+        startDate: '2025-09-28',
+        nextDate: '2025-09-28',
+        anchorDay: 28,
+      },
+    ]),
+  );
+
+  const { unmount } = render(<App />);
+  const savedTransactions = JSON.parse(localStorage.getItem('myFinanceData'));
+
+  expect(savedTransactions).toHaveLength(7);
+  expect(savedTransactions).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ id: 'weekly-rent-2026-09-14' }),
+      expect.objectContaining({ id: 'weekly-rent-2026-09-21' }),
+      expect.objectContaining({ id: 'weekly-rent-2026-09-28' }),
+      expect.objectContaining({ id: 'monthly-salary-2026-08-15' }),
+      expect.objectContaining({ id: 'monthly-salary-2026-09-15' }),
+      expect.objectContaining({ id: 'yearly-repair-2025-09-28' }),
+      expect.objectContaining({ id: 'yearly-repair-2026-09-28' }),
+    ]),
+  );
+  expect(JSON.parse(localStorage.getItem('myFinanceRecurring'))).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ id: 'weekly-rent', nextDate: '2026-10-05' }),
+      expect.objectContaining({ id: 'monthly-salary', nextDate: '2026-10-15' }),
+      expect.objectContaining({ id: 'yearly-repair', nextDate: '2027-09-28' }),
+    ]),
+  );
+
+  unmount();
+  render(<App />);
+  expect(JSON.parse(localStorage.getItem('myFinanceData'))).toHaveLength(7);
+  jest.useRealTimers();
+});
+
+test('saves a recurring transaction using the selected income or expense type', () => {
+  render(<App />);
+  fireEvent.click(screen.getByRole('button', { name: 'Revenus' }));
+  fireEvent.change(screen.getByLabelText('Recurring amount'), {
+    target: { value: '500' },
+  });
+  fireEvent.change(screen.getByLabelText('Recurring category'), {
+    target: { value: 'Salaires' },
+  });
+  fireEvent.change(screen.getByLabelText('Recurring frequency'), {
+    target: { value: 'yearly' },
+  });
+  fireEvent.change(screen.getByLabelText('Recurring start date'), {
+    target: { value: '2099-01-10' },
+  });
+  fireEvent.change(screen.getByLabelText('Recurring description'), {
+    target: { value: 'Annual salary' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Add recurring' }));
+
+  const [savedTemplate] = JSON.parse(localStorage.getItem('myFinanceRecurring'));
+  expect(savedTemplate).toEqual(
+    expect.objectContaining({
+      type: 'income',
+      amount: 500,
+      category: 'Salaires',
+      frequency: 'yearly',
+      startDate: '2099-01-10',
+      nextDate: '2099-01-10',
+      anchorDay: 10,
+      description: 'Annual salary',
+    }),
+  );
+  expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument();
 });
