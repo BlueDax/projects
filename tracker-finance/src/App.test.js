@@ -184,3 +184,137 @@ test('saves a recurring transaction using the selected income or expense type', 
   );
   expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument();
 });
+
+test('edits a recurring schedule without changing its existing transactions', () => {
+  const recurringTemplate = {
+    id: 'monthly-salary',
+    type: 'income',
+    amount: 100,
+    category: 'Salaires',
+    description: 'Salary',
+    frequency: 'monthly',
+    startDate: '2099-01-10',
+    nextDate: '2099-02-10',
+    anchorDay: 10,
+  };
+  localStorage.setItem(
+    'myFinanceRecurring',
+    JSON.stringify([recurringTemplate]),
+  );
+  const existingTransaction = {
+    id: 'monthly-salary-2099-01-10',
+    type: 'income',
+    amount: 100,
+    category: 'Salaires',
+    description: 'Salary',
+    date: '2099-01-10',
+  };
+  localStorage.setItem('myFinanceData', JSON.stringify([existingTransaction]));
+
+  render(<App />);
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Edit recurring Salaires' }),
+  );
+  fireEvent.change(screen.getByLabelText('Edit recurring type'), {
+    target: { value: 'expenses' },
+  });
+  fireEvent.change(screen.getByLabelText('Edit recurring amount'), {
+    target: { value: '125' },
+  });
+  fireEvent.change(screen.getByLabelText('Edit recurring category'), {
+    target: { value: 'Logement' },
+  });
+  fireEvent.change(screen.getByLabelText('Edit recurring frequency'), {
+    target: { value: 'yearly' },
+  });
+  fireEvent.change(screen.getByLabelText('Edit recurring next date'), {
+    target: { value: '2099-03-15' },
+  });
+  fireEvent.change(screen.getByLabelText('Edit recurring description'), {
+    target: { value: 'Updated schedule' },
+  });
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Save recurring changes' }),
+  );
+
+  expect(JSON.parse(localStorage.getItem('myFinanceRecurring'))).toEqual([
+    {
+      ...recurringTemplate,
+      type: 'expenses',
+      amount: 125,
+      category: 'Logement',
+      description: 'Updated schedule',
+      frequency: 'yearly',
+      nextDate: '2099-03-15',
+      anchorDay: 15,
+    },
+  ]);
+  expect(JSON.parse(localStorage.getItem('myFinanceData'))).toEqual([
+    existingTransaction,
+  ]);
+  expect(
+    screen.queryByRole('form', { name: 'Edit recurring transaction' }),
+  ).not.toBeInTheDocument();
+});
+
+test('edits only the selected recurring transaction occurrence', () => {
+  jest.useFakeTimers();
+  jest.setSystemTime(new Date('2026-09-28T12:00:00'));
+  const recurringTemplate = {
+    id: 'monthly-rent',
+    type: 'expenses',
+    amount: 800,
+    category: 'Logement',
+    description: 'Rent',
+    frequency: 'monthly',
+    startDate: '2026-09-01',
+    nextDate: '2026-10-01',
+    anchorDay: 1,
+  };
+  localStorage.setItem(
+    'myFinanceRecurring',
+    JSON.stringify([recurringTemplate]),
+  );
+  localStorage.setItem(
+    'myFinanceData',
+    JSON.stringify([
+      {
+        id: 'monthly-rent-2026-09-01',
+        type: 'expenses',
+        amount: 800,
+        category: 'Logement',
+        date: '2026-09-01',
+        description: 'Rent',
+      },
+    ]),
+  );
+
+  render(<App />);
+  fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+  fireEvent.change(screen.getByLabelText('Edit transaction amount'), {
+    target: { value: '850' },
+  });
+  fireEvent.change(screen.getByLabelText('Edit transaction category'), {
+    target: { value: 'Autres' },
+  });
+  fireEvent.change(screen.getByLabelText('Edit transaction description'), {
+    target: { value: 'Updated rent' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+  expect(JSON.parse(localStorage.getItem('myFinanceData'))).toEqual([
+    expect.objectContaining({
+      id: 'monthly-rent-2026-09-01',
+      amount: 850,
+      category: 'Autres',
+      description: 'Updated rent',
+    }),
+  ]);
+  expect(JSON.parse(localStorage.getItem('myFinanceRecurring'))).toEqual([
+    recurringTemplate,
+  ]);
+  expect(
+    screen.queryByRole('heading', { name: 'Edit transaction' }),
+  ).not.toBeInTheDocument();
+  jest.useRealTimers();
+});
