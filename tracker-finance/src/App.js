@@ -327,6 +327,22 @@ function App() {
   );
   const [recurringFrequency, setRecurringFrequency] = useState("monthly");
   const [recurringDescription, setRecurringDescription] = useState("");
+  const [editingRecurringId, setEditingRecurringId] = useState(null);
+  const [editRecurringType, setEditRecurringType] = useState("expenses");
+  const [editRecurringAmount, setEditRecurringAmount] = useState("");
+  const [editRecurringCategory, setEditRecurringCategory] =
+    useState("Alimentaire");
+  const [editRecurringFrequency, setEditRecurringFrequency] =
+    useState("monthly");
+  const [editRecurringNextDate, setEditRecurringNextDate] =
+    useState(getLocalDateValue());
+  const [editRecurringDescription, setEditRecurringDescription] = useState("");
+  const [editingTransaction, setEditingTransaction] = useState(null);
+  const [editType, setEditType] = useState("expenses");
+  const [editAmount, setEditAmount] = useState("");
+  const [editCategory, setEditCategory] = useState("Alimentaire");
+  const [editDate, setEditDate] = useState(getLocalDateValue());
+  const [editDescription, setEditDescription] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortConfig, setSortConfig] = useState({
     key: "date",
@@ -391,6 +407,46 @@ function App() {
     setDesc("");
   };
 
+  const startEditingTransaction = (transaction) => {
+    setEditingTransaction(transaction);
+    setEditType(transaction.type);
+    setEditAmount(String(transaction.amount));
+    setEditCategory(transaction.category);
+    setEditDate(transaction.date);
+    setEditDescription(transaction.description || "");
+  };
+
+  const cancelEditingTransaction = () => {
+    setEditingTransaction(null);
+  };
+
+  const saveEditedTransaction = (e) => {
+    e.preventDefault();
+    const parsedAmount = Number(editAmount);
+    if (!editAmount || !editDate) {
+      return alert("Please fill amount and date");
+    }
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      return alert("Amount must be a positive number");
+    }
+
+    setTransactions((previous) =>
+      previous.map((transaction) =>
+        transaction.id === editingTransaction.id
+          ? {
+              ...transaction,
+              type: editType,
+              amount: parsedAmount,
+              category: editCategory,
+              date: editDate,
+              description: editDescription,
+            }
+          : transaction,
+      ),
+    );
+    setEditingTransaction(null);
+  };
+
   const addRecurringTransaction = (e) => {
     e.preventDefault();
     const parsedAmount = Number(recurringAmount);
@@ -415,6 +471,45 @@ function App() {
     setRecurringTemplates((previous) => [...previous, newTemplate]);
     setRecurringAmount("");
     setRecurringDescription("");
+  };
+
+  const startEditingRecurringTransaction = (template) => {
+    setEditingRecurringId(template.id);
+    setEditRecurringType(template.type);
+    setEditRecurringAmount(String(template.amount));
+    setEditRecurringCategory(template.category);
+    setEditRecurringFrequency(template.frequency);
+    setEditRecurringNextDate(template.nextDate);
+    setEditRecurringDescription(template.description || "");
+  };
+
+  const saveEditedRecurringTransaction = (e) => {
+    e.preventDefault();
+    const parsedAmount = Number(editRecurringAmount);
+    if (!editRecurringAmount || !editRecurringNextDate) {
+      return alert("Please fill amount and next date");
+    }
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      return alert("Amount must be a positive number");
+    }
+
+    setRecurringTemplates((previous) =>
+      previous.map((template) =>
+        template.id === editingRecurringId
+          ? {
+              ...template,
+              type: editRecurringType,
+              amount: parsedAmount,
+              category: editRecurringCategory,
+              frequency: editRecurringFrequency,
+              nextDate: editRecurringNextDate,
+              anchorDay: Number(editRecurringNextDate.slice(8, 10)),
+              description: editRecurringDescription,
+            }
+          : template,
+      ),
+    );
+    setEditingRecurringId(null);
   };
 
   const deleteRecurringTransaction = (id) => {
@@ -749,16 +844,104 @@ function App() {
                   Next: {template.nextDate}
                   {template.description ? ` · ${template.description}` : ""}
                 </span>
-                <button
-                  type="button"
-                  className="button button--danger"
-                  onClick={() => deleteRecurringTransaction(template.id)}
-                >
-                  Stop
-                </button>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <button
+                    type="button"
+                    className="button button--period"
+                    aria-label={`Edit recurring ${template.category}`}
+                    onClick={() => startEditingRecurringTransaction(template)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="button button--danger"
+                    onClick={() => deleteRecurringTransaction(template.id)}
+                  >
+                    Stop
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
+        )}
+        {editingRecurringId && (
+          <form
+            onSubmit={saveEditedRecurringTransaction}
+            style={{ ...styles.form, marginTop: "1rem", marginBottom: 0 }}
+            aria-label="Edit recurring transaction"
+          >
+            <select
+              aria-label="Edit recurring type"
+              value={editRecurringType}
+              onChange={(event) => setEditRecurringType(event.target.value)}
+              style={styles.input}
+            >
+              <option value="expenses">Expense</option>
+              <option value="income">Income</option>
+            </select>
+            <input
+              type="number"
+              aria-label="Edit recurring amount"
+              min="0.01"
+              step="0.01"
+              value={editRecurringAmount}
+              onChange={(event) => setEditRecurringAmount(event.target.value)}
+              style={styles.input}
+              required
+            />
+            <select
+              aria-label="Edit recurring category"
+              value={editRecurringCategory}
+              onChange={(event) => setEditRecurringCategory(event.target.value)}
+              style={styles.input}
+            >
+              {CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="Edit recurring frequency"
+              value={editRecurringFrequency}
+              onChange={(event) => setEditRecurringFrequency(event.target.value)}
+              style={styles.input}
+            >
+              {Object.entries(FREQUENCY_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <input
+              type="date"
+              aria-label="Edit recurring next date"
+              value={editRecurringNextDate}
+              onChange={(event) => setEditRecurringNextDate(event.target.value)}
+              style={styles.input}
+              required
+            />
+            <input
+              type="text"
+              aria-label="Edit recurring description"
+              value={editRecurringDescription}
+              onChange={(event) =>
+                setEditRecurringDescription(event.target.value)
+              }
+              style={styles.input}
+            />
+            <button type="submit" className="button button--primary">
+              Save recurring changes
+            </button>
+            <button
+              type="button"
+              className="button button--period"
+              onClick={() => setEditingRecurringId(null)}
+            >
+              Cancel
+            </button>
+          </form>
         )}
       </section>
 
@@ -792,6 +975,70 @@ function App() {
           ))}
         </select>
       </div>
+
+      {editingTransaction && (
+        <section aria-labelledby="edit-transaction-heading">
+          <h2 id="edit-transaction-heading">Edit transaction</h2>
+          <form onSubmit={saveEditedTransaction} style={styles.form}>
+            <select
+              aria-label="Edit transaction type"
+              value={editType}
+              onChange={(event) => setEditType(event.target.value)}
+              style={styles.input}
+            >
+              <option value="expenses">Expense</option>
+              <option value="income">Income</option>
+            </select>
+            <input
+              type="number"
+              aria-label="Edit transaction amount"
+              min="0.01"
+              step="0.01"
+              value={editAmount}
+              onChange={(event) => setEditAmount(event.target.value)}
+              style={styles.input}
+              required
+            />
+            <select
+              aria-label="Edit transaction category"
+              value={editCategory}
+              onChange={(event) => setEditCategory(event.target.value)}
+              style={styles.input}
+            >
+              {CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+            <input
+              type="date"
+              aria-label="Edit transaction date"
+              value={editDate}
+              onChange={(event) => setEditDate(event.target.value)}
+              style={styles.input}
+              required
+            />
+            <input
+              type="text"
+              aria-label="Edit transaction description"
+              value={editDescription}
+              onChange={(event) => setEditDescription(event.target.value)}
+              style={styles.input}
+            />
+            <button type="submit" className="button button--primary">
+              Save changes
+            </button>
+            <button
+              type="button"
+              className="button button--period"
+              onClick={cancelEditingTransaction}
+            >
+              Cancel
+            </button>
+          </form>
+        </section>
+      )}
 
       {/* List */}
       <table style={styles.table}>
@@ -898,6 +1145,13 @@ function App() {
                 {t.amount.toFixed(2)} €
               </td>
               <td style={styles.thTd}>
+                <button
+                  type="button"
+                  className="button button--period"
+                  onClick={() => startEditingTransaction(t)}
+                >
+                  Edit
+                </button>
                 <button
                   type="button"
                   className="button button--danger"
