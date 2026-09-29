@@ -10,6 +10,7 @@ const CATEGORIES = [
   "Retrait d'argent",
   'Santé',
   "Autres",
+  "Catégorie Test CICD",
 ];
 
 const CHART_COLORS = [
