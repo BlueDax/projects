@@ -7,6 +7,8 @@ const CATEGORIES = [
   "Logement",
   "Réparations",
   "Divertissement/Loisirs",
+  "Retrait d'argent",
+  'Santé',
   "Autres",
 ];
 
