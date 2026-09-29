@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 
 const CATEGORIES = [
   "Alimentaire",
@@ -350,6 +350,7 @@ function App() {
     key: "date",
     direction: "desc",
   });
+  const importInputRef = useRef(null);
 
   const changeMonth = (month) => {
     setSelectedMonth(month);
@@ -362,6 +363,74 @@ function App() {
     const [year, month] = selectedMonth.split("-").map(Number);
     const nextMonth = new Date(year, month - 1 + offset, 1);
     changeMonth(getMonthValue(nextMonth));
+  };
+
+  const exportData = () => {
+    const backup = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      transactions,
+      recurringTemplates,
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], {
+      type: "application/json",
+    });
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = `finance-backup-${getLocalDateValue()}.json`;
+    link.click();
+    URL.revokeObjectURL(downloadUrl);
+  };
+
+  const importData = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const imported = JSON.parse(await file.text());
+      const importedTransactions = imported.transactions;
+      const importedRecurringTemplates = imported.recurringTemplates;
+
+      if (
+        !Array.isArray(importedTransactions) ||
+        !Array.isArray(importedRecurringTemplates) ||
+        importedTransactions.some(
+          (transaction) =>
+            !transaction ||
+            transaction.id === undefined ||
+            !["income", "expenses"].includes(transaction.type) ||
+            !Number.isFinite(Number(transaction.amount)) ||
+            !transaction.category ||
+            !transaction.date,
+        ) ||
+        importedRecurringTemplates.some(
+          (template) =>
+            !template ||
+            !template.id ||
+            !["income", "expenses"].includes(template.type) ||
+            !Number.isFinite(Number(template.amount)) ||
+            !template.category ||
+            !template.nextDate ||
+            !FREQUENCY_LABELS[template.frequency],
+        )
+      ) {
+        throw new Error("Invalid backup format");
+      }
+
+      if (
+        window.confirm(
+          "Importing this backup will replace your current transactions. Continue?",
+        )
+      ) {
+        setTransactions(importedTransactions);
+        setRecurringTemplates(importedRecurringTemplates);
+      }
+    } catch {
+      window.alert("Could not import this file. Choose a valid finance backup.");
+    } finally {
+      event.target.value = "";
+    }
   };
 
   // Save whenever transactions change
@@ -642,6 +711,28 @@ function App() {
             Current month
           </button>
         )}
+        <button
+          type="button"
+          className="button button--period"
+          onClick={() => importInputRef.current?.click()}
+        >
+          Import
+        </button>
+        <input
+          ref={importInputRef}
+          type="file"
+          accept="application/json,.json"
+          aria-label="Import finance backup"
+          onChange={importData}
+          hidden
+        />
+        <button
+          type="button"
+          className="button button--period"
+          onClick={exportData}
+        >
+          Export
+        </button>
       </div>
 
       {/* Dashboard */}
