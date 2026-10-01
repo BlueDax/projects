@@ -114,6 +114,7 @@ function getSectorPath(startAngle, endAngle, radius) {
 
 function CategoryPieChart({ title, label, data, total }) {
   let currentAngle = -90;
+  const legendData = [...data].sort((first, second) => second.amount - first.amount);
 
   return (
     <section style={styles.chartCard}>
@@ -160,13 +161,18 @@ function CategoryPieChart({ title, label, data, total }) {
             )}
           </svg>
           <ul style={styles.chartLegend}>
-            {data.map((item, index) => (
+            {legendData.map((item) => (
               <li key={item.category} style={styles.legendItem}>
                 <span
                   aria-hidden="true"
                   style={{
                     ...styles.legendSwatch,
-                    background: CHART_COLORS[index % CHART_COLORS.length],
+                    background:
+                      CHART_COLORS[
+                        data.findIndex(
+                          (chartItem) => chartItem.category === item.category,
+                        ) % CHART_COLORS.length
+                      ],
                   }}
                 />
                 <span>
