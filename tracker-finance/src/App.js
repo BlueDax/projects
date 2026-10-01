@@ -249,16 +249,11 @@ const styles = {
     flex: 1,
     textAlign: "center",
   },
-  predictionCard: {
-    background: "var(--forecast-surface)",
-    border: "1px solid var(--forecast-border)",
-  },
-  predictionLine: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: "0.75rem",
-    marginTop: "0.5rem",
+  predictedTotal: {
+    color: "var(--forecast-text)",
     fontSize: "0.9rem",
+    fontWeight: "600",
+    marginTop: "0.5rem",
   },
   upcomingRow: {
     background: "var(--forecast-row)",
@@ -816,6 +811,9 @@ function App() {
           >
             {totals.inc.toFixed(2)} €
           </div>
+          <div style={styles.predictedTotal}>
+            Prévu : {(totals.inc + predictedTotals.inc).toFixed(2)} €
+          </div>
         </div>
         <div style={styles.card}>
           <h3>Dépenses</h3>
@@ -823,6 +821,9 @@ function App() {
             style={{ color: "var(--expense)", fontSize: "1.5rem", fontWeight: "bold" }}
           >
             {totals.exp.toFixed(2)} €
+          </div>
+          <div style={styles.predictedTotal}>
+            Prévu : {(totals.exp + predictedTotals.exp).toFixed(2)} €
           </div>
         </div>
         <div style={styles.card}>
@@ -845,17 +846,6 @@ function App() {
             }}
           >
             Prévu : {projectedBalance.toFixed(2)} €
-          </div>
-        </div>
-        <div style={{ ...styles.card, ...styles.predictionCard }}>
-          <h3>Prévisions</h3>
-          <div style={styles.predictionLine}>
-            <span>Revenus à venir</span>
-            <strong>{predictedTotals.inc.toFixed(2)} €</strong>
-          </div>
-          <div style={styles.predictionLine}>
-            <span>Dépenses à venir</span>
-            <strong>{predictedTotals.exp.toFixed(2)} €</strong>
           </div>
         </div>
       </div>
