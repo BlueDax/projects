@@ -32,10 +32,6 @@ jobs:
           cache: npm
           cache-dependency-path: tracker-finance/package-lock.json
 
-      - name: Install dependencies
-        working-directory: tracker-finance
-        run: npm ci
-
       - name: Run tests
         working-directory: tracker-finance
         run: npm test -- --watchAll=false
