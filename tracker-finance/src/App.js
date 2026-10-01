@@ -25,9 +25,9 @@ const CHART_COLORS = [
 const RECURRING_STORAGE_KEY = "myFinanceRecurring";
 const THEME_STORAGE_KEY = "myFinanceTheme";
 const FREQUENCY_LABELS = {
-  weekly: "Weekly",
-  monthly: "Monthly",
-  yearly: "Yearly",
+  weekly: "Hebdomadaire",
+  monthly: "Mensuel",
+  yearly: "Annuel",
 };
 
 function getInitialTheme() {
@@ -119,7 +119,7 @@ function CategoryPieChart({ title, label, data, total }) {
     <section style={styles.chartCard}>
       <h3 style={{ marginTop: 0 }}>{title}</h3>
       {data.length === 0 ? (
-        <p style={{ color: "var(--text-muted)" }}>No data yet</p>
+        <p style={{ color: "var(--text-muted)" }}>Pas de données disponibles</p>
       ) : (
         <div style={styles.chartContent}>
           <svg
@@ -763,7 +763,7 @@ function App() {
           className="button button--period"
           onClick={() => setSelectedMonth(null)}
         >
-          Total view
+          Total
         </button>
         {!selectedMonth && (
           <button
@@ -771,7 +771,7 @@ function App() {
             className="button button--period"
             onClick={() => changeMonth(getMonthValue(new Date()))}
           >
-            Current month
+            Mois en cours
           </button>
         )}
         <button
@@ -779,7 +779,7 @@ function App() {
           className="button button--period"
           onClick={() => importInputRef.current?.click()}
         >
-          Import
+          Importer
         </button>
         <input
           ref={importInputRef}
@@ -794,7 +794,7 @@ function App() {
           className="button button--period"
           onClick={exportData}
         >
-          Export
+          Exporter
         </button>
         <button
           type="button"
@@ -899,7 +899,7 @@ function App() {
       <form onSubmit={addTransaction} style={styles.form}>
         <input
           type="number"
-          placeholder="Amount"
+          placeholder="Montant"
           aria-label="Transaction amount"
           min="0.01"
           step="0.01"
@@ -941,20 +941,20 @@ function App() {
           type="submit"
           className="button button--primary"
         >
-          Add
+          Ajouter
         </button>
       </form>
 
       <section style={styles.recurringSection}>
-        <h2 style={{ marginTop: 0 }}>Recurring transactions</h2>
+        <h2 style={{ marginTop: 0 }}>Transactions récurrentes</h2>
         <p>
-          Scheduled transactions are added automatically, including missed
-          occurrences, when the tracker is opened.
+          Les transactions récurrentes sont ajoutées automatiquement, 
+          y compris les occurrences manquées, lorsque le gestionnaire est ouvert.
         </p>
         <form onSubmit={addRecurringTransaction} style={styles.form}>
           <input
             type="number"
-            placeholder="Amount"
+            placeholder="Montant"
             aria-label="Recurring amount"
             min="0.01"
             step="0.01"
@@ -1004,14 +1004,14 @@ function App() {
           />
           <input
             type="text"
-            placeholder="Description (optional)"
+            placeholder="Description (optionelle)"
             aria-label="Recurring description"
             value={recurringDescription}
             onChange={(event) => setRecurringDescription(event.target.value)}
             style={styles.input}
           />
           <button type="submit" className="button button--primary">
-            Add recurring
+            Ajouter récurrent
           </button>
         </form>
         {recurringTemplates.length > 0 && (
@@ -1021,13 +1021,13 @@ function App() {
                 <span>
                   <strong>{template.category}</strong>
                   {" · "}
-                  {template.type === "income" ? "Income" : "Expense"}
+                  {template.type === "income" ? "Revenu" : "Dépense"}
                   {" · "}
                   {template.amount.toFixed(2)} €
                   {" · "}
                   {FREQUENCY_LABELS[template.frequency]}
                   {" · "}
-                  Next: {template.nextDate}
+                  Prochain: {template.nextDate}
                   {template.description ? ` · ${template.description}` : ""}
                 </span>
                 <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -1037,14 +1037,14 @@ function App() {
                     aria-label={`Edit recurring ${template.category}`}
                     onClick={() => startEditingRecurringTransaction(template)}
                   >
-                    Edit
+                    Modifier
                   </button>
                   <button
                     type="button"
                     className="button button--danger"
                     onClick={() => deleteRecurringTransaction(template.id)}
                   >
-                    Stop
+                    Annuler
                   </button>
                 </div>
               </li>
@@ -1063,8 +1063,8 @@ function App() {
               onChange={(event) => setEditRecurringType(event.target.value)}
               style={styles.input}
             >
-              <option value="expenses">Expense</option>
-              <option value="income">Income</option>
+              <option value="expenses">Dépenses</option>
+              <option value="income">Revenus</option>
             </select>
             <input
               type="number"
@@ -1118,14 +1118,14 @@ function App() {
               style={styles.input}
             />
             <button type="submit" className="button button--primary">
-              Save recurring changes
+              Enregistrer les modifications
             </button>
             <button
               type="button"
               className="button button--period"
               onClick={() => setEditingRecurringId(null)}
             >
-              Cancel
+              Annuler
             </button>
           </form>
         )}
@@ -1142,7 +1142,7 @@ function App() {
           gap: "1rem",
         }}
       >
-        <label style={{ fontWeight: "bold" }}>Filter by Category:</label>
+        <label style={{ fontWeight: "bold" }}>Filtrer par catégorie:</label>
         <select
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
@@ -1155,7 +1155,7 @@ function App() {
             color: "var(--text)",
           }}
         >
-          <option value="All">All Categories</option>
+          <option value="All">Toutes les catégories</option>
           {CATEGORIES.map((cat) => (
             <option key={cat} value={cat}>
               {cat}
@@ -1166,7 +1166,7 @@ function App() {
 
       {editingTransaction && (
         <section aria-labelledby="edit-transaction-heading">
-          <h2 id="edit-transaction-heading">Edit transaction</h2>
+          <h2 id="edit-transaction-heading">Modifier la transaction</h2>
           <form onSubmit={saveEditedTransaction} style={styles.form}>
             <select
               aria-label="Edit transaction type"
@@ -1174,8 +1174,8 @@ function App() {
               onChange={(event) => setEditType(event.target.value)}
               style={styles.input}
             >
-              <option value="expenses">Expense</option>
-              <option value="income">Income</option>
+              <option value="expenses">Dépenses</option>
+              <option value="income">Revenus</option>
             </select>
             <input
               type="number"
@@ -1215,14 +1215,14 @@ function App() {
               style={styles.input}
             />
             <button type="submit" className="button button--primary">
-              Save changes
+              Enregistrer les modifications
             </button>
             <button
               type="button"
               className="button button--period"
               onClick={cancelEditingTransaction}
             >
-              Cancel
+              Annuler
             </button>
           </form>
         </section>
@@ -1256,7 +1256,7 @@ function App() {
               onClick={() => handleSort("category")}
               title="Sort by Category"
             >
-              Category{" "}
+              Catégorie{" "}
               {sortConfig.key === "category" &&
                 (sortConfig.direction === "asc" ? " ↑" : " ↓")}
             </th>
@@ -1284,7 +1284,7 @@ function App() {
               onClick={() => handleSort("amount")}
               title="Sort by Amount"
             >
-              Amount{" "}
+              Montant{" "}
               {sortConfig.key === "amount" &&
                 (sortConfig.direction === "asc" ? " ↑" : " ↓")}
             </th>
@@ -1303,7 +1303,7 @@ function App() {
           {list.length === 0 && (
             <tr>
               <td colSpan="5" style={{ textAlign: "center", padding: "2rem" }}>
-                No records
+                Aucun enregistrement
               </td>
             </tr>
           )}
@@ -1353,14 +1353,14 @@ function App() {
                     className="button button--period"
                     onClick={() => startEditingTransaction(t)}
                   >
-                    Edit
+                    Modifier
                   </button>
                   <button
                     type="button"
                     className="button button--danger"
                     onClick={() => handleDelete(t.id)}
                   >
-                    Delete
+                    Supprimer
                   </button>
                 </div>
               </td>
