@@ -681,6 +681,7 @@ function App() {
     { inc: 0, exp: 0 },
   );
   const balance = totals.inc - totals.exp;
+  const projectedBalance = balance + predictedTotals.inc - predictedTotals.exp;
   const categoryTotals = (transactionType) =>
     completedTransactions
       .filter((transaction) => transaction.type === transactionType)
@@ -824,17 +825,6 @@ function App() {
             {totals.exp.toFixed(2)} €
           </div>
         </div>
-        <div style={{ ...styles.card, ...styles.predictionCard }}>
-          <h3>Prévisions</h3>
-          <div style={styles.predictionLine}>
-            <span>Revenus à venir</span>
-            <strong>{predictedTotals.inc.toFixed(2)} €</strong>
-          </div>
-          <div style={styles.predictionLine}>
-            <span>Dépenses à venir</span>
-            <strong>{predictedTotals.exp.toFixed(2)} €</strong>
-          </div>
-        </div>
         <div style={styles.card}>
           <h3>Solde</h3>
           <div
@@ -845,6 +835,27 @@ function App() {
             }}
           >
             {balance.toFixed(2)} €
+          </div>
+          <div
+            style={{
+              color: "var(--forecast-text)",
+              fontSize: "0.9rem",
+              fontWeight: "600",
+              marginTop: "0.4rem",
+            }}
+          >
+            Prévu : {projectedBalance.toFixed(2)} €
+          </div>
+        </div>
+        <div style={{ ...styles.card, ...styles.predictionCard }}>
+          <h3>Prévisions</h3>
+          <div style={styles.predictionLine}>
+            <span>Revenus à venir</span>
+            <strong>{predictedTotals.inc.toFixed(2)} €</strong>
+          </div>
+          <div style={styles.predictionLine}>
+            <span>Dépenses à venir</span>
+            <strong>{predictedTotals.exp.toFixed(2)} €</strong>
           </div>
         </div>
       </div>
