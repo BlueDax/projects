@@ -23,11 +23,21 @@ const CHART_COLORS = [
 ];
 
 const RECURRING_STORAGE_KEY = "myFinanceRecurring";
+const THEME_STORAGE_KEY = "myFinanceTheme";
 const FREQUENCY_LABELS = {
   weekly: "Weekly",
   monthly: "Monthly",
   yearly: "Yearly",
 };
+
+function getInitialTheme() {
+  const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+  if (savedTheme === "light" || savedTheme === "dark") return savedTheme;
+
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
 
 function getLocalDateValue(date = new Date()) {
   const year = date.getFullYear();
@@ -109,7 +119,7 @@ function CategoryPieChart({ title, label, data, total }) {
     <section style={styles.chartCard}>
       <h3 style={{ marginTop: 0 }}>{title}</h3>
       {data.length === 0 ? (
-        <p style={{ color: "#666" }}>No data yet</p>
+        <p style={{ color: "var(--text-muted)" }}>No data yet</p>
       ) : (
         <div style={styles.chartContent}>
           <svg
@@ -137,7 +147,7 @@ function CategoryPieChart({ title, label, data, total }) {
                     key={item.category}
                     d={path}
                     fill={CHART_COLORS[index % CHART_COLORS.length]}
-                    stroke="#fff"
+                    stroke="var(--surface)"
                     strokeWidth="1"
                   >
                     <title>
@@ -176,8 +186,8 @@ function CategoryPieChart({ title, label, data, total }) {
 const styles = {
   container: {
     maxWidth: "900px",
-    margin: "2rem auto",
-    padding: "0 1rem",
+    margin: "0 auto",
+    padding: "2rem 1rem",
     fontFamily: 'sans-serif',
   },
   dashboard: {
@@ -193,10 +203,10 @@ const styles = {
     flexWrap: "wrap",
   },
   chartCard: {
-    background: "#fff",
+    background: "var(--surface)",
     padding: "1.5rem",
     borderRadius: "8px",
-    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+    boxShadow: "var(--shadow)",
     flex: "1 1 320px",
     minWidth: 0,
   },
@@ -232,16 +242,16 @@ const styles = {
     flexShrink: 0,
   },
   card: {
-    background: "#fff",
+    background: "var(--surface)",
     padding: "1.5rem",
     borderRadius: "8px",
-    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+    boxShadow: "var(--shadow)",
     flex: 1,
     textAlign: "center",
   },
   predictionCard: {
-    background: "#fffaf0",
-    border: "1px solid #f1d39b",
+    background: "var(--forecast-surface)",
+    border: "1px solid var(--forecast-border)",
   },
   predictionLine: {
     display: "flex",
@@ -251,15 +261,15 @@ const styles = {
     fontSize: "0.9rem",
   },
   upcomingRow: {
-    background: "#fff8e7",
+    background: "var(--forecast-row)",
   },
   upcomingBadge: {
     display: "inline-block",
     marginLeft: "0.5rem",
     padding: "0.15rem 0.4rem",
     borderRadius: "4px",
-    background: "#ffebc2",
-    color: "#8a4b08",
+    background: "var(--forecast-badge)",
+    color: "var(--forecast-text)",
     fontSize: "0.75rem",
     fontWeight: "bold",
   },
@@ -272,7 +282,7 @@ const styles = {
     marginBottom: "1.5rem",
   },
   form: {
-    background: "#fff",
+    background: "var(--surface)",
     padding: "1.5rem",
     borderRadius: "8px",
     marginBottom: "2rem",
@@ -284,9 +294,9 @@ const styles = {
   recurringSection: {
     marginBottom: "2rem",
     padding: "1.5rem",
-    background: "#fff",
+    background: "var(--surface)",
     borderRadius: "8px",
-    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+    boxShadow: "var(--shadow)",
   },
   recurringList: {
     display: "grid",
@@ -302,23 +312,29 @@ const styles = {
     gap: "1rem",
     flexWrap: "wrap",
     padding: "0.75rem 1rem",
-    border: "1px solid #eaecf0",
+    border: "1px solid var(--border)",
     borderRadius: "8px",
   },
   input: {
     padding: "0.6rem",
-    border: "1px solid #ddd",
+    border: "1px solid var(--border-strong)",
     borderRadius: "4px",
     flex: 1,
+    background: "var(--input-surface)",
+    color: "var(--text)",
   },
   table: {
     width: "100%",
     borderCollapse: "collapse",
-    background: "#fff",
+    background: "var(--surface)",
     borderRadius: "8px",
     overflow: "hidden",
   },
-  thTd: { padding: "1rem", textAlign: "left", borderBottom: "1px solid #eee" },
+  thTd: {
+    padding: "1rem",
+    textAlign: "left",
+    borderBottom: "1px solid var(--border)",
+  },
   badge: {
     padding: "0.2rem 0.6rem",
     borderRadius: "12px",
@@ -328,6 +344,7 @@ const styles = {
 };
 
 function App() {
+  const [theme, setTheme] = useState(getInitialTheme);
   // Load from LocalStorage on init
   const [transactions, setTransactions] = useState(() => {
     const saved = localStorage.getItem("myFinanceData");
@@ -375,6 +392,14 @@ function App() {
     direction: "desc",
   });
   const importInputRef = useRef(null);
+
+  const toggleTheme = () => {
+    setTheme((currentTheme) => {
+      const nextTheme = currentTheme === "dark" ? "light" : "dark";
+      localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+      return nextTheme;
+    });
+  };
 
   const changeMonth = (month) => {
     setSelectedMonth(month);
@@ -696,8 +721,9 @@ function App() {
     });
 
   return (
-    <div style={styles.container}>
-      <h1 align="center">Gestionnaire des dépenses</h1>
+    <div className="app-theme" data-theme={theme}>
+      <div className="app-shell" style={styles.container}>
+        <h1 align="center">Gestionnaire des dépenses</h1>
 
       <div
         className="periodControls"
@@ -769,6 +795,15 @@ function App() {
         >
           Export
         </button>
+        <button
+          type="button"
+          className="button button--period theme-toggle"
+          aria-label="Dark mode"
+          aria-pressed={theme === "dark"}
+          onClick={toggleTheme}
+        >
+          Dark mode
+        </button>
       </div>
 
       {/* Dashboard */}
@@ -776,7 +811,7 @@ function App() {
         <div style={styles.card}>
           <h3>Revenus</h3>
           <div
-            style={{ color: "#2ecc71", fontSize: "1.5rem", fontWeight: "bold" }}
+            style={{ color: "var(--income)", fontSize: "1.5rem", fontWeight: "bold" }}
           >
             {totals.inc.toFixed(2)} €
           </div>
@@ -784,7 +819,7 @@ function App() {
         <div style={styles.card}>
           <h3>Dépenses</h3>
           <div
-            style={{ color: "#e74c3c", fontSize: "1.5rem", fontWeight: "bold" }}
+            style={{ color: "var(--expense)", fontSize: "1.5rem", fontWeight: "bold" }}
           >
             {totals.exp.toFixed(2)} €
           </div>
@@ -804,7 +839,7 @@ function App() {
           <h3>Solde</h3>
           <div
             style={{
-              color: balance >= 0 ? "#3498db" : "#e74c3c",
+              color: balance >= 0 ? "var(--accent)" : "var(--expense)",
               fontSize: "1.5rem",
               fontWeight: "bold",
             }}
@@ -1102,9 +1137,11 @@ function App() {
           onChange={(e) => setSelectedCategory(e.target.value)}
           style={{
             padding: "0.6rem",
-            border: "1px solid #ddd",
+            border: "1px solid var(--border-strong)",
             borderRadius: "4px",
             minWidth: "150px",
+            background: "var(--input-surface)",
+            color: "var(--text)",
           }}
         >
           <option value="All">All Categories</option>
@@ -1187,7 +1224,7 @@ function App() {
             <th
               style={{
                 ...styles.thTd,
-                background: "#f1f1f1",
+                background: "var(--table-head)",
                 fontWeight: "bold",
                 cursor: "pointer",
               }}
@@ -1201,7 +1238,7 @@ function App() {
             <th
               style={{
                 ...styles.thTd,
-                background: "#f1f1f1",
+                background: "var(--table-head)",
                 fontWeight: "bold",
                 cursor: "pointer",
               }}
@@ -1215,7 +1252,7 @@ function App() {
             <th
               style={{
                 ...styles.thTd,
-                background: "#f1f1f1",
+                background: "var(--table-head)",
                 fontWeight: "bold",
                 cursor: "pointer",
               }}
@@ -1229,7 +1266,7 @@ function App() {
             <th
               style={{
                 ...styles.thTd,
-                background: "#f1f1f1",
+                background: "var(--table-head)",
                 fontWeight: "bold",
                 cursor: "pointer",
               }}
@@ -1243,7 +1280,7 @@ function App() {
             <th
               style={{
                 ...styles.thTd,
-                background: "#f1f1f1",
+                background: "var(--table-head)",
                 fontWeight: "bold",
               }}
             >
@@ -1275,8 +1312,12 @@ function App() {
                 <span
                   style={{
                     ...styles.badge,
-                    background: t.type === "income" ? "#d5f5e3" : "#fadbd8",
-                    color: t.type === "income" ? "#27ae60" : "#c0392b",
+                    background:
+                      t.type === "income"
+                        ? "var(--income-surface)"
+                        : "var(--expense-surface)",
+                    color:
+                      t.type === "income" ? "var(--income)" : "var(--expense)",
                   }}
                 >
                   {t.category}
@@ -1286,7 +1327,8 @@ function App() {
               <td
                 style={{
                   ...styles.thTd,
-                  color: t.type === "income" ? "#27ae60" : "#c0392b",
+                  color:
+                    t.type === "income" ? "var(--income)" : "var(--expense)",
                   fontWeight: "bold",
                 }}
               >
@@ -1315,7 +1357,8 @@ function App() {
             );
           })}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 }
