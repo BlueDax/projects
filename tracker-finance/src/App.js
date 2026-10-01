@@ -354,9 +354,6 @@ function App() {
 
   const changeMonth = (month) => {
     setSelectedMonth(month);
-    if (date.slice(0, 7) !== month) {
-      setDate(`${month}-01`);
-    }
   };
 
   const shiftMonth = (offset) => {
