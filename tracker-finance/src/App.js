@@ -21,6 +21,7 @@ const CHART_COLORS = [
   "#f1c40f",
   "#e74c3c",
   "#34495e",
+  "#00ff00",
 ];
 
 const RECURRING_STORAGE_KEY = "myFinanceRecurring";
