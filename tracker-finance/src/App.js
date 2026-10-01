@@ -239,6 +239,30 @@ const styles = {
     flex: 1,
     textAlign: "center",
   },
+  predictionCard: {
+    background: "#fffaf0",
+    border: "1px solid #f1d39b",
+  },
+  predictionLine: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "0.75rem",
+    marginTop: "0.5rem",
+    fontSize: "0.9rem",
+  },
+  upcomingRow: {
+    background: "#fff8e7",
+  },
+  upcomingBadge: {
+    display: "inline-block",
+    marginLeft: "0.5rem",
+    padding: "0.15rem 0.4rem",
+    borderRadius: "4px",
+    background: "#ffebc2",
+    color: "#8a4b08",
+    fontSize: "0.75rem",
+    fontWeight: "bold",
+  },
   periodControls: {
     display: "flex",
     alignItems: "center",
@@ -608,7 +632,14 @@ function App() {
         transaction.date.startsWith(selectedMonth),
       )
     : transactions;
-  const totals = periodTransactions.reduce(
+  const today = getLocalDateValue();
+  const upcomingTransactions = periodTransactions.filter(
+    (transaction) => transaction.date > today,
+  );
+  const completedTransactions = periodTransactions.filter(
+    (transaction) => transaction.date <= today,
+  );
+  const totals = completedTransactions.reduce(
     (acc, t) => {
       if (t.type === "income") acc.inc += t.amount;
       else acc.exp += t.amount;
@@ -616,9 +647,17 @@ function App() {
     },
     { inc: 0, exp: 0 },
   );
+  const predictedTotals = upcomingTransactions.reduce(
+    (acc, transaction) => {
+      if (transaction.type === "income") acc.inc += transaction.amount;
+      else acc.exp += transaction.amount;
+      return acc;
+    },
+    { inc: 0, exp: 0 },
+  );
   const balance = totals.inc - totals.exp;
   const categoryTotals = (transactionType) =>
-    periodTransactions
+    completedTransactions
       .filter((transaction) => transaction.type === transactionType)
       .reduce((categories, transaction) => {
         categories[transaction.category] =
@@ -748,6 +787,17 @@ function App() {
             style={{ color: "#e74c3c", fontSize: "1.5rem", fontWeight: "bold" }}
           >
             {totals.exp.toFixed(2)} €
+          </div>
+        </div>
+        <div style={{ ...styles.card, ...styles.predictionCard }}>
+          <h3>Prévisions</h3>
+          <div style={styles.predictionLine}>
+            <span>Revenus à venir</span>
+            <strong>{predictedTotals.inc.toFixed(2)} €</strong>
+          </div>
+          <div style={styles.predictionLine}>
+            <span>Dépenses à venir</span>
+            <strong>{predictedTotals.exp.toFixed(2)} €</strong>
           </div>
         </div>
         <div style={styles.card}>
@@ -1209,9 +1259,18 @@ function App() {
               </td>
             </tr>
           )}
-          {list.map((t) => (
-            <tr key={t.id}>
-              <td style={styles.thTd}>{t.date}</td>
+          {list.map((t) => {
+            const isUpcoming = t.date > today;
+
+            return (
+            <tr
+              key={t.id}
+              style={isUpcoming ? styles.upcomingRow : undefined}
+            >
+              <td style={styles.thTd}>
+                {t.date}
+                {isUpcoming && <span style={styles.upcomingBadge}>À venir</span>}
+              </td>
               <td style={styles.thTd}>
                 <span
                   style={{
@@ -1235,23 +1294,26 @@ function App() {
                 {t.amount.toFixed(2)} €
               </td>
               <td style={styles.thTd}>
-                <button
-                  type="button"
-                  className="button button--period"
-                  onClick={() => startEditingTransaction(t)}
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  className="button button--danger"
-                  onClick={() => handleDelete(t.id)}
-                >
-                  Delete
-                </button>
+                <div className="transaction-actions">
+                  <button
+                    type="button"
+                    className="button button--period"
+                    onClick={() => startEditingTransaction(t)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="button button--danger"
+                    onClick={() => handleDelete(t.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>
