@@ -633,7 +633,7 @@ function App() {
   };
 
   const deleteRecurringTransaction = (id) => {
-    if (window.confirm("Stop this recurring transaction?")) {
+    if (window.confirm("Arrêter cette transaction récurrente ?")) {
       setRecurringTemplates((previous) =>
         previous.filter((template) => template.id !== id),
       );
@@ -643,7 +643,7 @@ function App() {
   const handleDelete = (id) => {
     // Using a simple prompt or just removing immediately if you want to avoid confirm entirely
     // If you strictly need confirmation, this works:
-    if (window.confirm("Are you sure you want to delete this entry?")) {
+    if (window.confirm("Voulez-vous vraiment supprimer cette entrée ?")) {
       setTransactions((prev) => prev.filter((t) => t.id !== id));
     }
   };
@@ -843,7 +843,7 @@ function App() {
               fontWeight: "bold",
             }}
           >
-            balance >= 0 ? + {balance.toFixed(2)} € : - {balance.toFixed(2)} €
+            {balance.toFixed(2)} €
           </div>
           <div
             style={{
