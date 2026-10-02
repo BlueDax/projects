@@ -25,21 +25,11 @@ const CHART_COLORS = [
 ];
 
 const RECURRING_STORAGE_KEY = "myFinanceRecurring";
-const THEME_STORAGE_KEY = "myFinanceTheme";
 const FREQUENCY_LABELS = {
   weekly: "Hebdomadaire",
   monthly: "Mensuel",
   yearly: "Annuel",
 };
-
-function getInitialTheme() {
-  const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-  if (savedTheme === "light" || savedTheme === "dark") return savedTheme;
-
-  return window.matchMedia?.("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
-}
 
 function getLocalDateValue(date = new Date()) {
   const year = date.getFullYear();
@@ -193,7 +183,7 @@ function CategoryPieChart({ title, label, data, total }) {
 // Simple inline styles for brevity
 const styles = {
   container: {
-    maxWidth: "900px",
+    maxWidth: "1400px",
     margin: "0 auto",
     padding: "2rem 1rem",
     fontFamily: 'sans-serif',
@@ -347,7 +337,6 @@ const styles = {
 };
 
 function App() {
-  const [theme, setTheme] = useState(getInitialTheme);
   // Load from LocalStorage on init
   const [transactions, setTransactions] = useState(() => {
     const saved = localStorage.getItem("myFinanceData");
@@ -395,14 +384,6 @@ function App() {
     direction: "desc",
   });
   const importInputRef = useRef(null);
-
-  const toggleTheme = () => {
-    setTheme((currentTheme) => {
-      const nextTheme = currentTheme === "dark" ? "light" : "dark";
-      localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
-      return nextTheme;
-    });
-  };
 
   const changeMonth = (month) => {
     setSelectedMonth(month);
@@ -725,10 +706,37 @@ function App() {
     });
 
   return (
-    <div className="app-theme" data-theme={theme}>
+    <div className="app-theme">
       <div className="app-shell" style={styles.container}>
+        <div className="data-management-controls">
+          <button
+            type="button"
+            className="button button--period"
+            onClick={() => importInputRef.current?.click()}
+          >
+            Importer
+          </button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            aria-label="Import finance backup"
+            onChange={importData}
+            hidden
+          />
+          <button
+            type="button"
+            className="button button--period"
+            onClick={exportData}
+          >
+            Exporter
+          </button>
+        </div>
         <h1 align="center">Gestionnaire des dépenses</h1>
 
+      <div className="dashboard-layout">
+        <aside className="dashboard-sidebar" aria-label="Summary and controls">
+      <div className="sidebar-heading-spacer" aria-hidden="true" />
       <div
         className="periodControls"
         style={styles.periodControls}
@@ -777,41 +785,10 @@ function App() {
             Mois en cours
           </button>
         )}
-        <button
-          type="button"
-          className="button button--period"
-          onClick={() => importInputRef.current?.click()}
-        >
-          Importer
-        </button>
-        <input
-          ref={importInputRef}
-          type="file"
-          accept="application/json,.json"
-          aria-label="Import finance backup"
-          onChange={importData}
-          hidden
-        />
-        <button
-          type="button"
-          className="button button--period"
-          onClick={exportData}
-        >
-          Exporter
-        </button>
-        <button
-          type="button"
-          className="button button--period theme-toggle"
-          aria-label="Dark mode"
-          aria-pressed={theme === "dark"}
-          onClick={toggleTheme}
-        >
-          Dark mode
-        </button>
       </div>
 
       {/* Dashboard */}
-      <div style={styles.dashboard}>
+      <div className="summary-cards" style={styles.dashboard}>
         <div style={styles.card}>
           <h3>Revenus</h3>
           <div
@@ -828,7 +805,7 @@ function App() {
           <div
             style={{ color: "var(--expense)", fontSize: "1.5rem", fontWeight: "bold" }}
           >
-            -{totals.exp.toFixed(2)} €
+            - {totals.exp.toFixed(2)} €
           </div>
           <div style={styles.predictedTotal}>
             Prévu : - {(totals.exp + predictedTotals.exp).toFixed(2)} €
@@ -858,7 +835,7 @@ function App() {
         </div>
       </div>
 
-      <div style={styles.charts}>
+      <div className="summary-charts" style={styles.charts}>
         <CategoryPieChart
           title="Dépenses par catégorie"
           label="Expense"
@@ -872,6 +849,11 @@ function App() {
           total={totals.inc}
         />
       </div>
+
+        </aside>
+
+        <main className="transactions-panel">
+      <h2 className="transactions-heading">Transactions</h2>
 
       {/* Tabs */}
       <div className="tabs">
@@ -1227,6 +1209,7 @@ function App() {
       )}
 
       {/* List */}
+      <div className="transaction-table-wrap">
       <table style={styles.table}>
         <thead>
           <tr>
@@ -1367,6 +1350,9 @@ function App() {
           })}
         </tbody>
         </table>
+      </div>
+        </main>
+      </div>
       </div>
     </div>
   );
