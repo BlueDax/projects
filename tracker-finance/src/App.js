@@ -817,10 +817,10 @@ function App() {
           <div
             style={{ color: "var(--income)", fontSize: "1.5rem", fontWeight: "bold" }}
           >
-            {totals.inc.toFixed(2)} €
+            + {totals.inc.toFixed(2)} €
           </div>
           <div style={styles.predictedTotal}>
-            Prévu : {(totals.inc + predictedTotals.inc).toFixed(2)} €
+            Prévu : + {(totals.inc + predictedTotals.inc).toFixed(2)} €
           </div>
         </div>
         <div style={styles.card}>
@@ -828,10 +828,10 @@ function App() {
           <div
             style={{ color: "var(--expense)", fontSize: "1.5rem", fontWeight: "bold" }}
           >
-            {totals.exp.toFixed(2)} €
+            -{totals.exp.toFixed(2)} €
           </div>
           <div style={styles.predictedTotal}>
-            Prévu : {(totals.exp + predictedTotals.exp).toFixed(2)} €
+            Prévu : - {(totals.exp + predictedTotals.exp).toFixed(2)} €
           </div>
         </div>
         <div style={styles.card}>
@@ -843,7 +843,7 @@ function App() {
               fontWeight: "bold",
             }}
           >
-            {balance.toFixed(2)} €
+            balance >= 0 ? + {balance.toFixed(2)} € : - {balance.toFixed(2)} €
           </div>
           <div
             style={{
