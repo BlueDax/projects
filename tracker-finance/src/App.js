@@ -1296,11 +1296,11 @@ function App() {
               key={t.id}
               style={isUpcoming ? styles.upcomingRow : undefined}
             >
-              <td style={styles.thTd}>
+              <td data-label="Date" style={styles.thTd}>
                 {t.date}
                 {isUpcoming && <span style={styles.upcomingBadge}>À venir</span>}
               </td>
-              <td style={styles.thTd}>
+              <td data-label="Catégorie" style={styles.thTd}>
                 <span
                   style={{
                     ...styles.badge,
@@ -1315,8 +1315,11 @@ function App() {
                   {t.category}
                 </span>
               </td>
-              <td style={styles.thTd}>{t.description || "-"}</td>
+              <td data-label="Description" style={styles.thTd}>
+                {t.description || "-"}
+              </td>
               <td
+                data-label="Montant"
                 style={{
                   ...styles.thTd,
                   color:
@@ -1327,7 +1330,7 @@ function App() {
                 {t.type === "income" ? "+" : "-"}
                 {t.amount.toFixed(2)} €
               </td>
-              <td style={styles.thTd}>
+              <td data-label="Action" style={styles.thTd}>
                 <div className="transaction-actions">
                   <button
                     type="button"
