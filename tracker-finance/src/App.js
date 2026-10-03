@@ -30,6 +30,7 @@ const RECURRING_STORAGE_KEY = "myFinanceRecurring";
 const FREQUENCY_LABELS = {
   weekly: "Hebdomadaire",
   monthly: "Mensuel",
+  quarterly: "Trimestriel",
   yearly: "Annuel",
 };
 
@@ -53,9 +54,15 @@ function getNextRecurringDate(template) {
       .slice(0, 10);
   }
 
-  const nextYear = template.frequency === "yearly" ? year + 1 : year;
-  const nextMonth =
-    template.frequency === "yearly" ? month - 1 : month;
+  const monthsToAdvance =
+    template.frequency === "yearly"
+      ? 12
+      : template.frequency === "quarterly"
+        ? 3
+        : 1;
+  const monthIndex = month - 1 + monthsToAdvance;
+  const nextYear = year + Math.floor(monthIndex / 12);
+  const nextMonth = monthIndex % 12;
   const monthDays = new Date(Date.UTC(nextYear, nextMonth + 1, 0)).getUTCDate();
   const nextDay = Math.min(template.anchorDay, monthDays);
 
