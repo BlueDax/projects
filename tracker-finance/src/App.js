@@ -10,6 +10,8 @@ const CATEGORIES = [
   "Retrait d'argent",
   'Santé',
   "Investissements",
+  "Abonnements",
+  "Assurances",
   "Autres",
 ];
 
