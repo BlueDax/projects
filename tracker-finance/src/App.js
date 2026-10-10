@@ -27,6 +27,7 @@ const CHART_COLORS = [
 ];
 
 const RECURRING_STORAGE_KEY = "myFinanceRecurring";
+const CYCLE_TEMPLATE_STORAGE_KEY = "myFinanceCycleTemplate";
 const FREQUENCY_LABELS = {
   weekly: "Hebdomadaire",
   monthly: "Mensuel",
@@ -43,6 +44,33 @@ function getLocalDateValue(date = new Date()) {
 
 function getMonthValue(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getMonthlyAnchorDate(monthValue, anchorDay) {
+  const [year, month] = monthValue.split("-").map(Number);
+  const monthDays = new Date(year, month, 0).getDate();
+  const day = Math.min(anchorDay, monthDays);
+  return `${monthValue}-${String(day).padStart(2, "0")}`;
+}
+
+function getPreviousDate(dateValue) {
+  const [year, month, day] = dateValue.split("-").map(Number);
+  return getLocalDateValue(new Date(year, month - 1, day - 1));
+}
+
+function getRecurringAnchorDay(template) {
+  return (
+    Number(template.anchorDay) ||
+    Number((template.startDate || template.nextDate).slice(8, 10))
+  );
+}
+
+function getCurrentPeriodMonth(today, anchorDay) {
+  const currentMonth = getMonthValue(today);
+  const currentMonthStart = getMonthlyAnchorDate(currentMonth, anchorDay);
+  if (getLocalDateValue(today) >= currentMonthStart) return currentMonth;
+
+  return getMonthValue(new Date(today.getFullYear(), today.getMonth() - 1, 1));
 }
 
 function getNextRecurringDate(template) {
@@ -177,8 +205,11 @@ function CategoryPieChart({ title, label, data, total }) {
                   }}
                 />
                 <span>
-                  {item.category}: {item.amount.toFixed(2)} € (
-                  {((item.amount / total) * 100).toFixed(1)}%)
+                  {item.category}:{" "}
+                  <strong style={styles.legendValue}>
+                    {item.amount.toFixed(2)} € (
+                    {((item.amount / total) * 100).toFixed(1)}%)
+                  </strong>
                 </span>
               </li>
             ))}
@@ -241,6 +272,10 @@ const styles = {
     gap: "0.5rem",
     marginBottom: "0.6rem",
     fontSize: "0.9rem",
+  },
+  legendValue: {
+    color: "var(--text)",
+    fontWeight: "700",
   },
   legendSwatch: {
     width: "0.8rem",
@@ -356,9 +391,20 @@ function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [selectedMonth, setSelectedMonth] = useState(() =>
-    getMonthValue(new Date()),
+  const [selectedCycleTemplateId, setSelectedCycleTemplateId] = useState(
+    () => localStorage.getItem(CYCLE_TEMPLATE_STORAGE_KEY) || "",
   );
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const selectedCycleId = localStorage.getItem(CYCLE_TEMPLATE_STORAGE_KEY);
+    const selectedTemplate = recurringTemplates.find(
+      (template) =>
+        template.id === selectedCycleId && template.frequency === "monthly",
+    );
+    const today = new Date();
+    return selectedTemplate
+      ? getCurrentPeriodMonth(today, getRecurringAnchorDay(selectedTemplate))
+      : getMonthValue(today);
+  });
   const [type, setType] = useState("expenses"); // 'expenses' or 'income'
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("Alimentaire");
@@ -394,8 +440,28 @@ function App() {
   });
   const importInputRef = useRef(null);
 
+  const selectedCycleTemplate = recurringTemplates.find(
+    (template) =>
+      template.id === selectedCycleTemplateId &&
+      template.frequency === "monthly",
+  );
+
   const changeMonth = (month) => {
     setSelectedMonth(month);
+  };
+
+  const selectCycleTemplate = (templateId) => {
+    setSelectedCycleTemplateId(templateId);
+    const template = recurringTemplates.find(
+      (recurringTemplate) => recurringTemplate.id === templateId,
+    );
+    if (template) {
+      setSelectedMonth(
+        getCurrentPeriodMonth(new Date(), getRecurringAnchorDay(template)),
+      );
+    } else {
+      setSelectedMonth(getMonthValue(new Date()));
+    }
   };
 
   const shiftMonth = (offset) => {
@@ -483,6 +549,20 @@ function App() {
       JSON.stringify(recurringTemplates),
     );
   }, [recurringTemplates]);
+
+  useEffect(() => {
+    if (selectedCycleTemplateId && !selectedCycleTemplate) {
+      setSelectedCycleTemplateId("");
+    }
+  }, [selectedCycleTemplateId, selectedCycleTemplate]);
+
+  useEffect(() => {
+    if (selectedCycleTemplate) {
+      localStorage.setItem(CYCLE_TEMPLATE_STORAGE_KEY, selectedCycleTemplate.id);
+    } else {
+      localStorage.removeItem(CYCLE_TEMPLATE_STORAGE_KEY);
+    }
+  }, [selectedCycleTemplate]);
 
   useEffect(() => {
     const result = createDueTransactions(
@@ -645,9 +725,38 @@ function App() {
     setSortConfig({ key, direction });
   };
   // Calculations
+  const cycleAnchorDay = selectedCycleTemplate
+    ? getRecurringAnchorDay(selectedCycleTemplate)
+    : null;
+  const periodStartDate =
+    selectedMonth && cycleAnchorDay
+      ? getMonthlyAnchorDate(selectedMonth, cycleAnchorDay)
+      : selectedMonth
+        ? `${selectedMonth}-01`
+        : null;
+  const nextMonthValue = selectedMonth
+    ? getMonthValue(
+        new Date(
+          Number(selectedMonth.slice(0, 4)),
+          Number(selectedMonth.slice(5, 7)),
+          1,
+        ),
+      )
+    : null;
+  const nextPeriodStartDate =
+    nextMonthValue && cycleAnchorDay
+      ? getMonthlyAnchorDate(nextMonthValue, cycleAnchorDay)
+      : nextMonthValue
+        ? `${nextMonthValue}-01`
+        : null;
+  const periodEndDate = nextPeriodStartDate
+    ? getPreviousDate(nextPeriodStartDate)
+    : null;
   const periodTransactions = selectedMonth
-    ? transactions.filter((transaction) =>
-        transaction.date.startsWith(selectedMonth),
+    ? transactions.filter(
+        (transaction) =>
+          transaction.date >= periodStartDate &&
+          transaction.date < nextPeriodStartDate,
       )
     : transactions;
   const today = getLocalDateValue();
@@ -751,6 +860,21 @@ function App() {
         style={styles.periodControls}
         aria-label="View period"
       >
+        <select
+          aria-label="Cycle anchor payment"
+          value={selectedCycleTemplate?.id || ""}
+          onChange={(event) => selectCycleTemplate(event.target.value)}
+          style={styles.input}
+        >
+          <option value="">Mois calendaires</option>
+          {recurringTemplates
+            .filter((template) => template.frequency === "monthly")
+            .map((template) => (
+              <option key={template.id} value={template.id}>
+                {template.category} · {template.nextDate.slice(8, 10)}
+              </option>
+            ))}
+        </select>
         {selectedMonth && (
           <>
             <button
@@ -775,6 +899,9 @@ function App() {
             >
               &gt;
             </button>
+            <span aria-live="polite">
+              {periodStartDate} – {periodEndDate}
+            </span>
           </>
         )}
         <button
@@ -789,7 +916,13 @@ function App() {
           <button
             type="button"
             className="button button--period"
-            onClick={() => changeMonth(getMonthValue(new Date()))}
+            onClick={() =>
+              changeMonth(
+                cycleAnchorDay
+                  ? getCurrentPeriodMonth(new Date(), cycleAnchorDay)
+                  : getMonthValue(new Date()),
+              )
+            }
           >
             Mois en cours
           </button>
